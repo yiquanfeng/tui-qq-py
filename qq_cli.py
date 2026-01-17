@@ -1,10 +1,10 @@
 import argparse
-from loguru import logger
 import websockets
 import asyncio
 import json
 from settings import settings
 from message import receivePrivateMessage, receiveGroupMessage, sendGroupMessage, sendPrivateMessage
+from textual import log
 
 
 def call_api():
@@ -13,43 +13,44 @@ def parse_json():
     return
 
 def parse_ws_mesage(json_message: dict):
-    if json_message['post_type'] == 'message':
+    msg = None
+    if json_message.get('post_type') == 'message':
         if json_message['message_type'] == 'private':
             msg = receivePrivateMessage(json_message)
-            logger.info(f"Private message from {msg.user_id}: {msg.message}")
         elif json_message['message_type'] == 'group':
             msg = receiveGroupMessage(json_message)
-            logger.info(f"Group message in {msg.group_id} from {msg.user_id}: {msg.message}")
-        else:
-            logger.warning(f"Unknown message type: {json_message['message_type']}")
     elif json_message['post_type'] == 'meta_event':
         pass
-    else:
-        logger.warning(f"Unknown post type: {json_message['post_type']}")
-    return
+    return msg
 
 
-async def receive_messages():
-    logger.info("Receiving messages...")
+async def receive_messages(on_message_callback=None):
+    log.info("Receiving messages...")
     ## send的时候也许可以复用这个连接
     async with websockets.connect(settings.ws_url) as websocket:
         while True:
             raw_msg = await websocket.recv()
             data = json.loads(raw_msg)
-            logger.debug(f"Received message: {data}")
-            parse_ws_mesage(data)
+            msg = parse_ws_mesage(data)
+            if msg and on_message_callback:
+                on_message_callback(msg)
 
 async def send_private_message(user_id: int, message: str):
     async with websockets.connect(settings.ws_url) as websocket:
         msg = sendPrivateMessage(user_id, message)
         await websocket.send(json.dumps(msg.__dict__))
-        logger.info(f"Sent private message to {user_id}: {message}")
+        # logger.info(f"Sent private message to {user_id}: {message}")
+        log(f"Sent private message to {user_id}: {message}")
 
 async def send_group_message(group_id: int, message: str):
     async with websockets.connect(settings.ws_url) as websocket:
         msg = sendGroupMessage(group_id, message)
         await websocket.send(json.dumps(msg.__dict__))
-        logger.info(f"Sent group message to {group_id}: {message}")
+        log(f"Sent group message to {group_id}: {message}")
+
+async def test_send(msg: str):
+    # await send_private_message(1572087810, msg)
+    await send_group_message(1055065019, msg)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="QQ CLI Tool")
@@ -67,5 +68,5 @@ if __name__ == "__main__":
     elif args.msg and args.group:
         asyncio.run(send_group_message(args.group, args.msg))
     else:
-        logger.error("Invalid arguments. Use --help for more information.")
+        log("Invalid arguments. Use --help for more information.")
         pass
