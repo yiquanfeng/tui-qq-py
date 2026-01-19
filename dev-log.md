@@ -10,3 +10,8 @@ cli的开发太过于顺利，应该是官网的东西比较现成导致的
 # Textual example解析
 1. dictionary
 这个实例我觉得写的真不错
+
+## extra
+在公司尝试使用最新版napcat部署应用的时候，发现一些不方便使用的点
+1. 没有requirements.txt ，记得还有pyhon socket包
+2. 新版napcat强制需要token验证，需要在header里面添加

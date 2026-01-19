@@ -26,8 +26,7 @@ def parse_ws_mesage(json_message: dict):
 
 async def receive_messages(on_message_callback=None):
     log.info("Receiving messages...")
-    ## send的时候也许可以复用这个连接
-    async with websockets.connect(settings.ws_url) as websocket:
+    async with websockets.connect(settings.ws_url, additional_headers=settings.header) as websocket:
         while True:
             raw_msg = await websocket.recv()
             data = json.loads(raw_msg)
@@ -36,21 +35,21 @@ async def receive_messages(on_message_callback=None):
                 on_message_callback(msg)
 
 async def send_private_message(user_id: int, message: str):
-    async with websockets.connect(settings.ws_url) as websocket:
+    async with websockets.connect(settings.ws_url, additional_headers=settings.header) as websocket:
         msg = sendPrivateMessage(user_id, message)
         await websocket.send(json.dumps(msg.__dict__))
         # logger.info(f"Sent private message to {user_id}: {message}")
         log(f"Sent private message to {user_id}: {message}")
 
 async def send_group_message(group_id: int, message: str):
-    async with websockets.connect(settings.ws_url) as websocket:
+    async with websockets.connect(settings.ws_url, additional_headers=settings.header) as websocket:
         msg = sendGroupMessage(group_id, message)
         await websocket.send(json.dumps(msg.__dict__))
         log(f"Sent group message to {group_id}: {message}")
 
 async def test_send(msg: str):
-    # await send_private_message(1572087810, msg)
-    await send_group_message(1055065019, msg)
+    await send_private_message(1572087810, msg)
+    # await send_group_message(1055065019, msg)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="QQ CLI Tool")
