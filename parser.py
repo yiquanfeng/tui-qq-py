@@ -16,6 +16,11 @@ async def parse_ws_mesage(json_message: dict):
             image_url = msg.message[0]['data'].get('url')
             image_name = msg.message[0]['data'].get('file')
             await downloader(image_url, 'image', image_name)
+            return {
+                "nickname": msg.sender['nickname'],
+                "type": "image",
+                "file": f"imgs/{image_name}"
+            }
             logger.info(f"Received image message: {image_url}")
         elif type == 'at':
             pass
@@ -57,7 +62,6 @@ async def parse_ws_mesage(json_message: dict):
 async def downloader(url: str, type: str, file_name: str):
     import aiohttp
     import aiofiles
-    import time
     save_path = f"imgs/{file_name}"
     try:
         async with aiohttp.ClientSession() as session:
