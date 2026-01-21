@@ -1,6 +1,7 @@
 from textual.app import App, ComposeResult
 from textual.widgets import Input, RichLog
-from qq_cli import test_send, receive_messages
+from qq_cli import QQClient
+from settings import settings
 import asyncio
 
 
@@ -15,7 +16,7 @@ class QQApp(App):
         event.input.value = ""
         # 显示自己发送的消息
         self.query_one("#chat_log", RichLog).write(f"[bold green]Me:[/bold green] {message}")
-        await test_send(message)
+        await self.client.send_private(user_id=1572087810, message=message)
 
     def append_message(self, msg):
         """回调函数，用于接收新消息并渲染到 UI"""
@@ -26,8 +27,8 @@ class QQApp(App):
             chat_log.write(f"[bold magenta]Private {msg.sender['nickname']}:[/bold magenta] {msg.message[0]['data']['text']}")
 
     async def on_mount(self) -> None:
-        # 在后台启动监听任务，并传入 UI 更新的回调
-        asyncio.create_task(receive_messages(on_message_callback=self.append_message))
+        self.client = QQClient(ws_url=settings.ws_url, token=settings.token)
+        asyncio.create_task(self.client.listen(callback=self.append_message))
 
 if __name__ == "__main__":
     app = QQApp()

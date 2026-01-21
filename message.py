@@ -1,23 +1,23 @@
-from typing import Dict
+from typing import Dict, List
 
 class receivePrivateMessage:
     def __init__(self, data: Dict):
-        self.time = data["time"]
-        self.post_type = data["post_type"]
-        self.message_type = data["message_type"]
-        self.sub_type = data["sub_type"]
-        self.message_id = data["message_id"]
-        self.user_id = data["user_id"]
-        self.message = data["message"]
+        self.time: int = data["time"]
+        self.post_type: str = data["post_type"]
+        self.message_type: str = data["message_type"]
+        self.sub_type: str = data["sub_type"]
+        self.message_id: int = data["message_id"]
+        self.user_id: int = data["user_id"]
+        self.message: List[Dict] = data["message"]
         self.raw_message: str = data["raw_message"]
-        self.font = data["font"]
+        self.font: int = data["font"]
         self.sender: Dict = data["sender"]
-        self.self_id = data["self_id"]
+        self.self_id: int = data["self_id"]
 
 class receiveGroupMessage(receivePrivateMessage):
     def __init__(self, data: Dict):
         super().__init__(data)
-        self.group_id = data["group_id"]
+        self.group_id: int = data["group_id"]
 
 
 class sendWSMessage:

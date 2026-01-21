@@ -2,10 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     http_url: str = "http://localhost:3001/"
-    ws_url: str = "ws://localhost:3001/"
-    token: str = "110119"
-    header: dict = {
-        "Authorization": f"{token}"
-    }
+    ws_url: str = "ws://10.29.237.29:3001/"
+    token: str = "G4z=DTM$3G<Xorc="
 
 settings = Settings()

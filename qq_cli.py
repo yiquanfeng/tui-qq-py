@@ -3,53 +3,74 @@ import websockets
 import asyncio
 import json
 from settings import settings
-from message import receivePrivateMessage, receiveGroupMessage, sendGroupMessage, sendPrivateMessage
+from message import sendGroupMessage, sendPrivateMessage
 from textual import log
+from loguru import logger
+from parser import parse_ws_mesage
+from typing import Callable
 
 
 def call_api():
     return
 def parse_json():
     return
-
-def parse_ws_mesage(json_message: dict):
-    msg = None
-    if json_message.get('post_type') == 'message':
-        if json_message['message_type'] == 'private':
-            msg = receivePrivateMessage(json_message)
-        elif json_message['message_type'] == 'group':
-            msg = receiveGroupMessage(json_message)
-    elif json_message['post_type'] == 'meta_event':
+class QQClient:
+    def __init__(self, ws_url: str, token: str):
+        self.ws_url = ws_url
+        self.header = {
+            "Authorization": f"{token}"
+        }
+        self.websocket = None
+    
+    async def connect(self):
+        if self.websocket is None:
+            try: 
+                self.websocket = await websockets.connect(self.ws_url, additional_headers=self.header)
+            except Exception as e:
+                logger.error(f"Failed to connect to WebSocket server: {e}")
+                return
+        logger.info("Connected to WebSocket server.")
+    
+    async def parse_message(self):
         pass
-    return msg
 
+    async def listen(self, callback: Callable):
+        await self.connect()
+        if self.websocket is not None:
+            async for message in self.websocket:
+                data = json.loads(message)
+                logger.info(f"Received message: {data}")
+                parse_data = await parse_ws_mesage(data)
+                if callback and parse_data:
+                    log("Calling back with parsed data.")
+                    callback(parse_data)
+        else:
+            logger.error("WebSocket connection is not established.")
+    
+    async def send_private(self, user_id: int, message: str):
+        if self.websocket is None:
+            await self.connect()
+            logger.info("independent connected for sending private message.")
+        if self.websocket is not None:
+            logger.info("may reuse existing connection for sending private message.")
+            msg = sendPrivateMessage(user_id, message)
+            await self.websocket.send(json.dumps(msg.__dict__))
+            logger.info(f"Sent private message to {user_id}: {message}")
+        else:
+            logger.error("WebSocket connection is not established.")
+    
+    async def send_group(self, group_id: int, message: str):
+        if self.websocket is None:
+            await self.connect()
+            logger.info("independent connected for sending group message.")
+        if self.websocket is not None:
+            logger.info("may reuse existing connection for sending group message.")
+            msg = sendGroupMessage(group_id, message)
+            await self.websocket.send(json.dumps(msg.__dict__))
+            logger.info(f"Sent group message to {group_id}: {message}")
+        else:
+            logger.error("WebSocket connection is not established.")
 
-async def receive_messages(on_message_callback=None):
-    log.info("Receiving messages...")
-    async with websockets.connect(settings.ws_url, additional_headers=settings.header) as websocket:
-        while True:
-            raw_msg = await websocket.recv()
-            data = json.loads(raw_msg)
-            msg = parse_ws_mesage(data)
-            if msg and on_message_callback:
-                on_message_callback(msg)
-
-async def send_private_message(user_id: int, message: str):
-    async with websockets.connect(settings.ws_url, additional_headers=settings.header) as websocket:
-        msg = sendPrivateMessage(user_id, message)
-        await websocket.send(json.dumps(msg.__dict__))
-        # logger.info(f"Sent private message to {user_id}: {message}")
-        log(f"Sent private message to {user_id}: {message}")
-
-async def send_group_message(group_id: int, message: str):
-    async with websockets.connect(settings.ws_url, additional_headers=settings.header) as websocket:
-        msg = sendGroupMessage(group_id, message)
-        await websocket.send(json.dumps(msg.__dict__))
-        log(f"Sent group message to {group_id}: {message}")
-
-async def test_send(msg: str):
-    await send_private_message(1572087810, msg)
-    # await send_group_message(1055065019, msg)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="QQ CLI Tool")
@@ -59,13 +80,13 @@ if __name__ == "__main__":
     parser.add_argument("--receive", type=bool, help="Receive messages", default=False)
 
     args = parser.parse_args()
-
+    client = QQClient(settings.ws_url, settings.token)
     if args.receive:
-        asyncio.run(receive_messages())
+        asyncio.run(client.listen(callback=None))
     elif args.msg and args.user:
-        asyncio.run(send_private_message(args.user, args.msg))
+        asyncio.run(client.send_private(args.user, args.msg))
     elif args.msg and args.group:
-        asyncio.run(send_group_message(args.group, args.msg))
+        asyncio.run(client.send_group(args.group, args.msg))
     else:
         log("Invalid arguments. Use --help for more information.")
         pass
