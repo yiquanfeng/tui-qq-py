@@ -1,5 +1,30 @@
 /* 缩小图片的样式 */
 .small-image {
-    height: 20;
-    width: 40;
+    height: 5;
+    width: 10;
+}
+
+/* 减少消息之间的间距 */
+ChatView {
+    height: auto;
+    margin: 0;
+    padding: 0;
+}
+
+ChatView > Horizontal {
+    height: auto;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+ChatView Vertical {
+    height: auto;
+    width: 1fr;
+}
+
+ChatView > Horizontal > Static {
+    width: 12;
+    margin: 0;
+    padding: 0;
 }
