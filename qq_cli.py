@@ -9,11 +9,6 @@ from loguru import logger
 from parser import parse_ws_message
 from typing import Callable
 
-
-def call_api():
-    return
-def parse_json():
-    return
 class QQClient:
     def __init__(self, ws_url: str, token: str):
         self.ws_url = ws_url
@@ -27,9 +22,9 @@ class QQClient:
             try: 
                 self.websocket = await websockets.connect(self.ws_url, additional_headers=self.header)
             except Exception as e:
-                logger.error(f"Failed to connect to WebSocket server: {e}")
+                log(f"Failed to connect to WebSocket server: {e}")
                 return
-        logger.info("Connected to WebSocket server.")
+        log("Connected to WebSocket server.")
     
     async def parse_message(self):
         pass
@@ -40,7 +35,8 @@ class QQClient:
             async for message in self.websocket:
                 try:
                     data = json.loads(message)
-                    log(f"Received message: {data}")
+                    if settings.debug_mode:
+                        logger.debug(f"Received message: {data}")
                     parse_data = await parse_ws_message(data)
                     if callback and parse_data:
                         log("Calling back with parsed data.")
@@ -49,35 +45,35 @@ class QQClient:
                     log(f"Error processing message: {e}")
                     # 继续循环，不要因为一条消息解析失败就断开监听
         else:
-            logger.error("WebSocket connection is not established.")
+            log("WebSocket connection is not established.")
     
     async def send_private(self, user_id: int, message: str):
         if self.websocket is None:
             await self.connect()
-            logger.info("independent connected for sending private message.")
+            log("independent connected for sending private message.")
         if self.websocket is not None:
-            logger.info("may reuse existing connection for sending private message.")
+            log("may reuse existing connection for sending private message.")
             msg = sendPrivateMessage(user_id, message)
             try:
                 await self.websocket.send(json.dumps(msg.__dict__))
-                logger.info(f"Sent private message to {user_id}: {message}")
+                log(f"Sent private message to {user_id}: {message}")
             except Exception as e:
-                logger.error(f"Failed to send message: {e}")
+                log(f"Failed to send message: {e}")
                 self.websocket = None # Reset connection on failure
         else:
-            logger.error("WebSocket connection is not established.")
+            log("WebSocket connection is not established.")
     
     async def send_group(self, group_id: int, message: str):
         if self.websocket is None:
             await self.connect()
-            logger.info("independent connected for sending group message.")
+            log("independent connected for sending group message.")
         if self.websocket is not None:
-            logger.info("may reuse existing connection for sending group message.")
+            log("may reuse existing connection for sending group message.")
             msg = sendGroupMessage(group_id, message)
             await self.websocket.send(json.dumps(msg.__dict__))
-            logger.info(f"Sent group message to {group_id}: {message}")
+            log(f"Sent group message to {group_id}: {message}")
         else:
-            logger.error("WebSocket connection is not established.")
+            log("WebSocket connection is not established.")
 
 
 if __name__ == "__main__":
@@ -90,6 +86,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     client = QQClient(settings.ws_url, settings.token)
     if args.receive:
+        settings.debug_mode = True
         asyncio.run(client.listen(callback=None))
     elif args.msg and args.user:
         asyncio.run(client.send_private(args.user, args.msg))

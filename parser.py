@@ -1,5 +1,5 @@
 from message import receivePrivateMessage, receiveGroupMessage
-from loguru import logger
+from textual import log
 
 async def parse_ws_message(json_message: dict):
     msg = None
@@ -12,14 +12,14 @@ async def parse_ws_message(json_message: dict):
         type = msg.message[0]['type']
         if type == 'text':
             text_msg = msg.message[0]['data']['text']
-            logger.info(f"Received text message: {text_msg}")
+            log(f"Received text message: {text_msg}")
             resource = text_msg
         elif type == 'image':
             image_url = msg.message[0]['data'].get('url')
             image_name = msg.message[0]['data'].get('file')
             await downloader(image_url, 'image', image_name)
             resource = f"imgs/{image_name}"
-            logger.info(f"Received image message: {image_url}")
+            log(f"Received image message: {image_url}")
         elif type == 'at':
             pass
         elif type == 'reply':
@@ -48,7 +48,7 @@ async def parse_ws_message(json_message: dict):
         elif type == 'forward':
             pass
         else:
-            logger.info(f"Unknown message type: {type}")
+            log(f"Unknown message type: {type}")
         
         return {
             "type": type,
@@ -56,16 +56,16 @@ async def parse_ws_message(json_message: dict):
             "resource": resource,
         }
     elif json_message['post_type'] == 'meta_event':
-        logger.info("this is a meta event")
+        log("this is a meta event")
         return None
     elif json_message['post_type'] == 'message_sent':
-        logger.info("message sent event")
+        log("message sent event")
         return None
     elif json_message['post_type'] == 'notice':
-        logger.info("this is a notice event")
+        log("this is a notice event")
         return None
     else:
-        logger.info(f"Unknown post_type: {json_message.get('post_type')}")
+        log(f"Unknown post_type: {json_message.get('post_type')}")
         return None
     
 async def downloader(url: str, type: str, file_name: str):
@@ -79,10 +79,10 @@ async def downloader(url: str, type: str, file_name: str):
                     f = await aiofiles.open(save_path, mode='wb')
                     await f.write(await response.read())
                     await f.close()
-                    logger.info(f"Downloaded file from {url} to {save_path}")
+                    log(f"Downloaded file from {url} to {save_path}")
                 else:
-                    logger.error(f"Failed to download file from {url}. Status code: {response.status}")
+                    log(f"Failed to download file from {url}. Status code: {response.status}")
         return save_path
     except Exception as e:
-        logger.error(f"Exception occurred while downloading file from {url}: {e}")
+        log(f"Exception occurred while downloading file from {url}: {e}")
         return None
