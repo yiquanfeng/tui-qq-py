@@ -6,7 +6,7 @@ from settings import settings
 from message import sendGroupMessage, sendPrivateMessage
 from textual import log
 from loguru import logger
-from parser import parse_ws_mesage
+from parser import parse_ws_message
 from typing import Callable
 
 
@@ -38,12 +38,16 @@ class QQClient:
         await self.connect()
         if self.websocket is not None:
             async for message in self.websocket:
-                data = json.loads(message)
-                logger.info(f"Received message: {data}")
-                parse_data = await parse_ws_mesage(data)
-                if callback and parse_data:
-                    log("Calling back with parsed data.")
-                    callback(parse_data)
+                try:
+                    data = json.loads(message)
+                    log(f"Received message: {data}")
+                    parse_data = await parse_ws_message(data)
+                    if callback and parse_data:
+                        log("Calling back with parsed data.")
+                        await callback(parse_data)
+                except Exception as e:
+                    log(f"Error processing message: {e}")
+                    # 继续循环，不要因为一条消息解析失败就断开监听
         else:
             logger.error("WebSocket connection is not established.")
     
@@ -54,8 +58,12 @@ class QQClient:
         if self.websocket is not None:
             logger.info("may reuse existing connection for sending private message.")
             msg = sendPrivateMessage(user_id, message)
-            await self.websocket.send(json.dumps(msg.__dict__))
-            logger.info(f"Sent private message to {user_id}: {message}")
+            try:
+                await self.websocket.send(json.dumps(msg.__dict__))
+                logger.info(f"Sent private message to {user_id}: {message}")
+            except Exception as e:
+                logger.error(f"Failed to send message: {e}")
+                self.websocket = None # Reset connection on failure
         else:
             logger.error("WebSocket connection is not established.")
     
