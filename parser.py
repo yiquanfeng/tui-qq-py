@@ -1,8 +1,9 @@
 from message import receivePrivateMessage, receiveGroupMessage
 from loguru import logger
 
-async def parse_ws_mesage(json_message: dict):
+async def parse_ws_message(json_message: dict):
     msg = None
+    resource = None
     if json_message.get('post_type') == 'message':
         if json_message['message_type'] == 'private':
             msg = receivePrivateMessage(json_message)
@@ -12,15 +13,12 @@ async def parse_ws_mesage(json_message: dict):
         if type == 'text':
             text_msg = msg.message[0]['data']['text']
             logger.info(f"Received text message: {text_msg}")
+            resource = text_msg
         elif type == 'image':
             image_url = msg.message[0]['data'].get('url')
             image_name = msg.message[0]['data'].get('file')
             await downloader(image_url, 'image', image_name)
-            return {
-                "nickname": msg.sender['nickname'],
-                "type": "image",
-                "file": f"imgs/{image_name}"
-            }
+            resource = f"imgs/{image_name}"
             logger.info(f"Received image message: {image_url}")
         elif type == 'at':
             pass
@@ -51,12 +49,23 @@ async def parse_ws_mesage(json_message: dict):
             pass
         else:
             logger.info(f"Unknown message type: {type}")
-        return msg
+        
+        return {
+            "type": type,
+            "sender": msg.sender['nickname'],
+            "resource": resource,
+        }
     elif json_message['post_type'] == 'meta_event':
         logger.info("this is a meta event")
         return None
     elif json_message['post_type'] == 'message_sent':
         logger.info("message sent event")
+        return None
+    elif json_message['post_type'] == 'notice':
+        logger.info("this is a notice event")
+        return None
+    else:
+        logger.info(f"Unknown post_type: {json_message.get('post_type')}")
         return None
     
 async def downloader(url: str, type: str, file_name: str):
