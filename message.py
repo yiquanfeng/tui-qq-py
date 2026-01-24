@@ -64,3 +64,11 @@ class getUserHistoryMessage:
             "user_id": user_id,
             "count": count
         } 
+
+class getGroupHistoryMessage:
+    def __init__(self, group_id: int, count: int = 10):
+        self.action = "get_group_msg_history"
+        self.params = {
+            "group_id": group_id,
+            "count": count
+        }

@@ -3,7 +3,7 @@ import websockets
 import asyncio
 import json
 from settings import settings
-from message import sendGroupMessage, sendPrivateMessage, getUserHistoryMessage
+from message import sendGroupMessage, sendPrivateMessage, getUserHistoryMessage, getGroupHistoryMessage
 from textual import log
 from loguru import logger
 from parser import parse_ws_message
@@ -76,14 +76,20 @@ class QQClient:
         else:
             log("WebSocket connection is not established.")
     
-    async def get_history(self, user_id: int, count: int = 10):
-        inst = getUserHistoryMessage(user_id, count)
+    async def get_history(self, type: str,id: int, count: int = 10):
+        inst = None
+        if type == "group":
+            group_id = id
+            inst = getGroupHistoryMessage(group_id, count)
+        elif type == "private":
+            user_id = id
+            inst = getUserHistoryMessage(user_id, count)
         if self.websocket is None:
             await self.connect()
             log("independent connected for getting user history.")
         if self.websocket is not None:
             await self.websocket.send(json.dumps(inst.__dict__))
-            log(f"Requested message history for user {user_id}, count {count}.") 
+            log(f"Requested {type} message history for ID {id}, count {count}.")
         
 
 
