@@ -1,71 +1,91 @@
 from message import receivePrivateMessage, receiveGroupMessage
 from textual import log
+from message import internalMessage
+from typing import List
 
-async def parse_ws_message(json_message: dict):
-    msg = None
-    resource = None
-    if json_message.get('post_type') == 'message':
-        if json_message['message_type'] == 'private':
-            msg = receivePrivateMessage(json_message)
-        elif json_message['message_type'] == 'group':
-            msg = receiveGroupMessage(json_message)
-        type = msg.message[0]['type']
-        if type == 'text':
-            text_msg = msg.message[0]['data']['text']
-            log(f"Received text message: {text_msg}")
-            resource = text_msg
-        elif type == 'image':
-            image_url = msg.message[0]['data'].get('url')
-            image_name = msg.message[0]['data'].get('file')
-            await downloader(image_url, 'image', image_name)
-            resource = f"imgs/{image_name}"
-            log(f"Received image message: {image_url}")
-        elif type == 'at':
-            pass
-        elif type == 'reply':
-            pass
-        elif type == 'face':
-            pass
-        elif type == 'mface':
-            pass
-        elif type == 'dice':
-            pass
-        elif type == 'rps':
-            pass
-        elif type == 'poke':
-            pass
-        elif type == 'record':
-            pass
-        elif type == 'video':
-            pass
-        elif type == 'file':
-            pass
-        ## 卡片消息
-        elif type == 'json':
-            pass
-        elif type == 'music':
-            pass
-        elif type == 'forward':
-            pass
-        else:
-            log(f"Unknown message type: {type}")
-        
-        return {
-            "type": type,
-            "sender": msg.sender['nickname'],
-            "resource": resource,
-        }
-    elif json_message['post_type'] == 'meta_event':
-        log("this is a meta event")
-        return None
-    elif json_message['post_type'] == 'message_sent':
-        log("message sent event")
-        return None
-    elif json_message['post_type'] == 'notice':
-        log("this is a notice event")
-        return None
+async def parse_ws_message(json_message: dict) -> List[internalMessage] | None:
+    msgs = []
+    if 'post_type' in json_message:
+        if json_message.get('post_type') == 'message':
+            sender = json_message['sender']['nickname']
+            data = ""
+            for msg in json_message.get('message', []):
+                type = msg.get('type')
+                if type == 'text':
+                    text_msg = msg['data']['text']
+                    log(f"Received text message: {text_msg}")
+                    data = text_msg
+                elif type == 'image':
+                    image_url = msg['data'].get('url')
+                    image_name = msg['data'].get('file')
+                    await downloader(image_url, 'image', image_name)
+                    data = f"imgs/{image_name}"
+                    log(f"Received image message: {image_url}")
+                elif type == 'at':
+                    pass
+                elif type == 'reply':
+                    pass
+                elif type == 'face':
+                    pass
+                elif type == 'mface':
+                    pass
+                elif type == 'dice':
+                    pass
+                elif type == 'rps':
+                    pass
+                elif type == 'poke':
+                    pass
+                elif type == 'record':
+                    pass
+                elif type == 'video':
+                    pass
+                elif type == 'file':
+                    pass
+                ## 卡片消息
+                elif type == 'json':
+                    pass
+                elif type == 'music':
+                    pass
+                elif type == 'forward':
+                    pass
+                else:
+                    log(f"Unknown message type: {type}")
+                msgs.append(internalMessage(type, data, sender))
+            return msgs   
+
+        elif json_message['post_type'] == 'meta_event':
+            log("this is a meta event")
+            return None
+        elif json_message['post_type'] == 'message_sent':
+            log("message sent event")
+            return None
+        elif json_message['post_type'] == 'notice':
+            log("this is a notice event")
+            return None
+    ## 响应消息 
+    elif 'retcode' in json_message:
+        if 'messages' in json_message.get('data', {}):
+            for mesgs in json_message.get('data', {}).get('messages', []):
+                sender = mesgs.get('sender', {}).get('nickname', 'unknown')
+                for msg in mesgs.get('message', []):
+                    type = msg.get('type')
+                    data = ""
+                    if type == 'text':
+                        text_msg = msg['data']['text']
+                        log(f"Received history text message: {text_msg}")
+                        data = text_msg
+                    elif type == 'image':
+                        image_url = msg['data'].get('url')
+                        image_name = msg['data'].get('file')
+                        await downloader(image_url, 'image', image_name)
+                        data = f"imgs/{image_name}"
+                        log(f"Received history image message: {image_url}")
+                    else:
+                        log(f"Unknown history message type: {type}")
+                msgs.append(internalMessage(type, data, sender))
+        return msgs
     else:
-        log(f"Unknown post_type: {json_message.get('post_type')}")
+        log(f"Unknown post_type: {json_message}")
         return None
     
 async def downloader(url: str, type: str, file_name: str):
