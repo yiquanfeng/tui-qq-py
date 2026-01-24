@@ -5,6 +5,10 @@
 开发好了既可以塞图片和文字的聊天窗口
 ![alt text](./image-and-text.png)
 
+2025.1.24
+获取消息历史接口
+简单切换group and private
+
 需要确定前后端通信的协议
 前段只需要知道消息是什么，该如何渲染即可
 | data_type | text | imgae | at | reply | face | mface | dice | rps | poke | record | video | file | json | music | forward |
