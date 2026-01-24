@@ -3,7 +3,7 @@ import websockets
 import asyncio
 import json
 from settings import settings
-from message import sendGroupMessage, sendPrivateMessage
+from message import sendGroupMessage, sendPrivateMessage, getUserHistoryMessage
 from textual import log
 from loguru import logger
 from parser import parse_ws_message
@@ -35,6 +35,7 @@ class QQClient:
             async for message in self.websocket:
                 try:
                     data = json.loads(message)
+                    log(f"Received message: {data}")
                     if settings.debug_mode:
                         logger.debug(f"Received message: {data}")
                     parse_data = await parse_ws_message(data)
@@ -74,6 +75,16 @@ class QQClient:
             log(f"Sent group message to {group_id}: {message}")
         else:
             log("WebSocket connection is not established.")
+    
+    async def get_history(self, user_id: int, count: int = 10):
+        inst = getUserHistoryMessage(user_id, count)
+        if self.websocket is None:
+            await self.connect()
+            log("independent connected for getting user history.")
+        if self.websocket is not None:
+            await self.websocket.send(json.dumps(inst.__dict__))
+            log(f"Requested message history for user {user_id}, count {count}.") 
+        
 
 
 if __name__ == "__main__":
@@ -82,6 +93,7 @@ if __name__ == "__main__":
     parser.add_argument("--user", type=int, help="User ID to send message to")
     parser.add_argument("--group", type=int, help="Group ID to send message to")
     parser.add_argument("--receive", type=bool, help="Receive messages", default=False)
+    parser.add_argument("--get-history", type=int, help="get msg history", default=10)
 
     args = parser.parse_args()
     client = QQClient(settings.ws_url, settings.token)
@@ -92,6 +104,8 @@ if __name__ == "__main__":
         asyncio.run(client.send_private(args.user, args.msg))
     elif args.msg and args.group:
         asyncio.run(client.send_group(args.group, args.msg))
+    elif args.get_history and args.user:
+        asyncio.run(client.get_history(args.user, args.get_history))
     else:
         log("Invalid arguments. Use --help for more information.")
         pass

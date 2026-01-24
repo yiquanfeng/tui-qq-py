@@ -1,5 +1,11 @@
 from typing import Dict, List
 
+class internalMessage:
+    def __init__(self, type: str, data: str, sender: str):
+        self.type: str = type
+        self.data: str = data
+        self.sender: str = sender
+
 class receivePrivateMessage:
     def __init__(self, data: Dict):
         self.time: int = data["time"]
@@ -13,6 +19,12 @@ class receivePrivateMessage:
         self.font: int = data["font"]
         self.sender: Dict = data["sender"]
         self.self_id: int = data["self_id"]
+
+class returnMessage:
+    def __init__(self):
+        self.status: str
+        self.retcode: int
+        self.data: List[Dict]
 
 class receiveGroupMessage(receivePrivateMessage):
     def __init__(self, data: Dict):
@@ -44,4 +56,11 @@ class sendGroupMessage(sendWSMessage):
             "group_id": group_id,
             "message": message
         }
-        
+
+class getUserHistoryMessage:
+    def __init__(self, user_id: int, count: int = 10):
+        self.action = "get_friend_msg_history"
+        self.params = {
+            "user_id": user_id,
+            "count": count
+        } 

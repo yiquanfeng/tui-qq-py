@@ -6,7 +6,7 @@ from qq_cli import QQClient
 from settings import settings
 import asyncio
 from textual import log
-
+from message import internalMessage
 
 class ChatView(Static):
     def __init__(self, sender: str, text: str | None, image_path:str | None, **kwargs):
@@ -28,6 +28,7 @@ class ChatView(Static):
 class QQApp(App):
     CSS_PATH = "styles.css"
 
+
     def compose(self) -> ComposeResult:
         self.message_container = VerticalScroll()
         with self.message_container:
@@ -46,19 +47,23 @@ class QQApp(App):
         asyncio.create_task(self.client.send_private(user_id=1572087810, message=message))
         # self.message_container.scroll_end(animate=False)
 
-    async def append_message(self, msg):
+    async def append_message(self, msgs: list[internalMessage]) -> None:
         """回调函数，用于接收新消息并渲染到 UI"""
-        if msg['type'] == 'text':
-            log(f"Appending text message: {msg['resource']}")
-            await self.message_container.mount(ChatView(sender=msg['sender'], text=msg['resource'], image_path=None))
-        elif msg['type'] == 'image':
-            log(f"Appending image message: {msg['resource']}")
-            await self.message_container.mount(ChatView(sender=msg['sender'], text=None, image_path=msg['resource']))
+        for msg in msgs:
+            if msg.type == 'text':
+                log(f"Appending text message: {msg.data}")
+                await self.message_container.mount(ChatView(sender=msg.sender, text=msg.data, image_path=None))
+            elif msg.type == 'image':
+                log(f"Appending image message: {msg.data}")
+                await self.message_container.mount(ChatView(sender=msg.sender, text=None, image_path=msg.data))
         # self.message_container.scroll_end(animate=False)
 
     async def on_mount(self) -> None:
         self.client = QQClient(ws_url=settings.ws_url, token=settings.token)
-        asyncio.create_task(self.client.listen(callback=self.append_message))
+        ## 防止在获取历史消息时还未连接成功
+        await self.client.connect()
+        asyncio.create_task(self.client.listen(callback=self.append_message)) 
+        await self.client.get_history(user_id=1572087810, count=10)
 
 if __name__ == "__main__":
     app = QQApp()
