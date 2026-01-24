@@ -1,4 +1,3 @@
-from message import receivePrivateMessage, receiveGroupMessage
 from textual import log
 from message import internalMessage
 from typing import List
@@ -62,7 +61,7 @@ async def parse_ws_message(json_message: dict) -> List[internalMessage] | None:
         elif json_message['post_type'] == 'notice':
             log("this is a notice event")
             return None
-    ## 响应消息 
+    ## response message
     elif 'retcode' in json_message:
         if 'messages' in json_message.get('data', {}):
             for mesgs in json_message.get('data', {}).get('messages', []):
