@@ -1,7 +1,9 @@
 /* 缩小图片的样式 */
 .small-image {
-    height: 5;
-    width: 10;
+    width: auto;
+    height: auto;
+    max-width: 20;
+    margin: 1 0;
 }
 
 /* 减少消息之间的间距 */
